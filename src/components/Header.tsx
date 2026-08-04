@@ -49,8 +49,12 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
             CLB 18
           </span>
-          <h1 className="font-bold text-sm tracking-tight text-amber-400 truncate">
-            QUẢN LÝ PHÍ CẦU LÔNG
+          <h1 className="font-bold text-sm tracking-tight text-amber-400 truncate flex items-center gap-1.5">
+            <span>QUẢN LÝ PHÍ CẦU LÔNG</span>
+            <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[9px] font-medium px-1.5 py-0.2 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Cloud Realtime</span>
+            </span>
           </h1>
         </div>
 
