@@ -1,0 +1,6 @@
+{
+  "name": "Quản Lý Phí Cầu Lông",
+  "description": "Phần mềm di động quản lý đóng tiền cầu lông chia theo buổi, theo dõi trạng thái đóng tiền và phạt trễ hạn cho 18 thành viên.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
