@@ -1,3 +1,5 @@
+import { collection, doc, onSnapshot, setDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../firebase';
 import { ClubConfig, DailySession, Member, MemberDebtSummary, PaymentStatus } from '../types';
 import { calculateDaysLate, getTodayString } from './dateUtils';
 
@@ -45,18 +47,16 @@ function generateSeedSessions(): Record<string, DailySession> {
 
   const seed: Record<string, DailySession> = {};
 
-  // Session 2 days ago: 8 shuttlecocks, 6 players played
-  // Some paid, some unpaid (so they show purple with late fine!)
   seed[twoDaysAgoStr] = {
     date: twoDaysAgoStr,
     shuttlecocks: 8,
     pricePerShuttlecock: 28000,
     memberStatuses: {
-      m1: 'paid',   // Cường - đã đóng
-      m2: 'unpaid', // Quang - chưa đóng (trễ 2 ngày -> +20k)
-      m3: 'unpaid', // Bảo - chưa đóng (trễ 2 ngày -> +20k)
-      m4: 'paid',   // Tuyển - đã đóng
-      m5: 'unpaid', // Đức - chưa đóng
+      m1: 'paid',
+      m2: 'unpaid',
+      m3: 'unpaid',
+      m4: 'paid',
+      m5: 'unpaid',
       m6: 'none',
       m7: 'none',
       m8: 'paid',
@@ -75,19 +75,18 @@ function generateSeedSessions(): Record<string, DailySession> {
     updatedAt: new Date().toISOString(),
   };
 
-  // Session yesterday: 10 shuttlecocks, 8 players played
   seed[yesterdayStr] = {
     date: yesterdayStr,
     shuttlecocks: 10,
     pricePerShuttlecock: 28000,
     memberStatuses: {
       m1: 'paid',
-      m2: 'unpaid', // Quang - trễ 1 ngày (+10k)
+      m2: 'unpaid',
       m3: 'paid',
       m4: 'paid',
-      m5: 'unpaid', // Đức - trễ 1 ngày (+10k)
+      m5: 'unpaid',
       m6: 'paid',
-      m7: 'unpaid', // Trụ - trễ 1 ngày (+10k)
+      m7: 'unpaid',
       m8: 'none',
       m9: 'none',
       m10: 'none',
@@ -104,7 +103,6 @@ function generateSeedSessions(): Record<string, DailySession> {
     updatedAt: new Date().toISOString(),
   };
 
-  // Session today: default empty/0
   seed[today] = {
     date: today,
     shuttlecocks: 0,
@@ -135,6 +133,15 @@ export function saveClubConfig(config: ClubConfig): void {
   } catch (e) {
     console.error('Failed to save club config:', e);
   }
+
+  // Sync to Firestore asynchronously
+  try {
+    setDoc(doc(db, 'config', 'settings'), config, { merge: true }).catch((err) =>
+      console.warn('Firestore save config error:', err)
+    );
+  } catch (err) {
+    console.warn('Firestore config save error:', err);
+  }
 }
 
 export function loadAllSessions(): Record<string, DailySession> {
@@ -147,18 +154,87 @@ export function loadAllSessions(): Record<string, DailySession> {
     console.error('Failed to load sessions:', e);
   }
   
-  // If no data saved, initialize seed
   const seed = generateSeedSessions();
-  saveAllSessions(seed);
+  saveAllSessionsLocally(seed);
   return seed;
 }
 
-export function saveAllSessions(sessions: Record<string, DailySession>): void {
+export function saveAllSessionsLocally(sessions: Record<string, DailySession>): void {
   try {
     localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
   } catch (e) {
     console.error('Failed to save sessions:', e);
   }
+}
+
+export function saveSessionToFirestore(session: DailySession): void {
+  try {
+    setDoc(doc(db, 'sessions', session.date), session, { merge: true }).catch((err) =>
+      console.warn('Firestore save session error:', err)
+    );
+  } catch (err) {
+    console.warn('Firestore session save error:', err);
+  }
+}
+
+/**
+ * Real-time listener for Firestore Config
+ */
+export function subscribeFirestoreConfig(onUpdate: (config: ClubConfig) => void) {
+  return onSnapshot(
+    doc(db, 'config', 'settings'),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as ClubConfig;
+        const merged = { ...DEFAULT_CONFIG, ...data };
+        saveClubConfig(merged);
+        onUpdate(merged);
+      } else {
+        // Initialize config document
+        const initial = loadClubConfig();
+        setDoc(doc(db, 'config', 'settings'), initial, { merge: true }).catch(() => {});
+        onUpdate(initial);
+      }
+    },
+    (error) => {
+      console.warn('Firestore config listener error, using local:', error);
+      onUpdate(loadClubConfig());
+    }
+  );
+}
+
+/**
+ * Real-time listener for Firestore Sessions
+ */
+export function subscribeFirestoreSessions(onUpdate: (sessions: Record<string, DailySession>) => void) {
+  const sessionsCol = collection(db, 'sessions');
+
+  return onSnapshot(
+    sessionsCol,
+    async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed default sessions to Firestore if brand new
+        const seed = loadAllSessions();
+        const batch = writeBatch(db);
+        Object.values(seed).forEach((s) => {
+          batch.set(doc(db, 'sessions', s.date), s, { merge: true });
+        });
+        await batch.commit().catch(() => {});
+        onUpdate(seed);
+      } else {
+        const result: Record<string, DailySession> = {};
+        snapshot.docs.forEach((d) => {
+          result[d.id] = d.data() as DailySession;
+        });
+        saveAllSessionsLocally(result);
+        onUpdate(result);
+      }
+    },
+    (error) => {
+      console.warn('Firestore sessions listener error, using local:', error);
+      onUpdate(loadAllSessions());
+    }
+  );
 }
 
 export function getSessionForDate(dateStr: string): DailySession {
@@ -180,7 +256,8 @@ export function getSessionForDate(dateStr: string): DailySession {
   };
   
   allSessions[dateStr] = newSession;
-  saveAllSessions(allSessions);
+  saveAllSessionsLocally(allSessions);
+  saveSessionToFirestore(newSession);
   return newSession;
 }
 

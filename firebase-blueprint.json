@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "sessions": {
+      "title": "DailySession",
+      "description": "Daily badminton sessions and payment statuses",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "shuttlecocks": { "type": "number" },
+        "pricePerShuttlecock": { "type": "number" },
+        "memberStatuses": { "type": "object" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["date", "shuttlecocks", "pricePerShuttlecock", "memberStatuses"]
+    },
+    "config": {
+      "title": "ClubConfig",
+      "description": "Global settings for badminton club",
+      "type": "object",
+      "properties": {
+        "defaultPricePerShuttlecock": { "type": "number" },
+        "adminPin": { "type": "string" },
+        "finePerLateDay": { "type": "number" },
+        "paymentCutoffTime": { "type": "string" }
+      },
+      "required": ["defaultPricePerShuttlecock", "adminPin", "finePerLateDay", "paymentCutoffTime"]
+    }
+  },
+  "security": {
+    "rules": [
+      {
+        "collection": "sessions",
+        "allow": "read, write",
+        "condition": "true"
+      },
+      {
+        "collection": "config",
+        "allow": "read, write",
+        "condition": "true"
+      }
+    ]
+  }
+}

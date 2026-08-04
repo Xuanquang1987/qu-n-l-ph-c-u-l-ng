@@ -20,8 +20,11 @@ import {
   INITIAL_MEMBERS,
   loadAllSessions,
   loadClubConfig,
-  saveAllSessions,
+  saveAllSessionsLocally,
   saveClubConfig,
+  saveSessionToFirestore,
+  subscribeFirestoreConfig,
+  subscribeFirestoreSessions,
 } from './utils/storage';
 
 export default function App() {
@@ -37,14 +40,19 @@ export default function App() {
   const [showDebtReportModal, setShowDebtReportModal] = useState<boolean>(false);
   const [showCalendarModal, setShowCalendarModal] = useState<boolean>(false);
 
-  // Auto real-time date sync
+  // Real-time Firestore synchronization
   useEffect(() => {
-    const loadedSessions = loadAllSessions();
-    const loadedConfig = loadClubConfig();
-    setAllSessions(loadedSessions);
-    setConfig(loadedConfig);
+    // 1. Subscribe to Config updates
+    const unsubscribeConfig = subscribeFirestoreConfig((newConfig) => {
+      setConfig(newConfig);
+    });
 
-    // Periodically update date string if app is left open across midnight
+    // 2. Subscribe to Sessions updates
+    const unsubscribeSessions = subscribeFirestoreSessions((newSessions) => {
+      setAllSessions(newSessions);
+    });
+
+    // 3. Periodically update date string if app is left open across midnight
     const interval = setInterval(() => {
       const today = getTodayString();
       if (today !== currentDateStr && currentDateStr === getTodayString()) {
@@ -52,7 +60,11 @@ export default function App() {
       }
     }, 60000);
 
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribeConfig();
+      unsubscribeSessions();
+      clearInterval(interval);
+    };
   }, []);
 
   // Ensure current date session exists
@@ -65,10 +77,15 @@ export default function App() {
     updatedAt: new Date().toISOString(),
   };
 
-  // Helper to persist sessions state updates
-  const updateSessionsState = (updated: Record<string, DailySession>) => {
-    setAllSessions(updated);
-    saveAllSessions(updated);
+  // Helper to persist session updates to both state, local storage, and Firestore
+  const updateSession = (updatedSession: DailySession) => {
+    const updatedAll = {
+      ...allSessions,
+      [currentDateStr]: updatedSession,
+    };
+    setAllSessions(updatedAll);
+    saveAllSessionsLocally(updatedAll);
+    saveSessionToFirestore(updatedSession);
   };
 
   // Handler: Update shuttlecocks count for current session
@@ -78,12 +95,7 @@ export default function App() {
       shuttlecocks: count,
       updatedAt: new Date().toISOString(),
     };
-
-    const updatedAll = {
-      ...allSessions,
-      [currentDateStr]: updatedSession,
-    };
-    updateSessionsState(updatedAll);
+    updateSession(updatedSession);
   };
 
   // Handler: Update individual member status for current date
@@ -98,12 +110,7 @@ export default function App() {
       memberStatuses: updatedStatuses,
       updatedAt: new Date().toISOString(),
     };
-
-    const updatedAll = {
-      ...allSessions,
-      [currentDateStr]: updatedSession,
-    };
-    updateSessionsState(updatedAll);
+    updateSession(updatedSession);
   };
 
   // Handler: Select all members as participating (unpaid / red)
@@ -118,12 +125,7 @@ export default function App() {
       memberStatuses: newStatuses,
       updatedAt: new Date().toISOString(),
     };
-
-    const updatedAll = {
-      ...allSessions,
-      [currentDateStr]: updatedSession,
-    };
-    updateSessionsState(updatedAll);
+    updateSession(updatedSession);
   };
 
   // Handler: Mark all participating members as paid (green)
@@ -143,12 +145,7 @@ export default function App() {
       memberStatuses: newStatuses,
       updatedAt: new Date().toISOString(),
     };
-
-    const updatedAll = {
-      ...allSessions,
-      [currentDateStr]: updatedSession,
-    };
-    updateSessionsState(updatedAll);
+    updateSession(updatedSession);
   };
 
   // Handler: Reset all members to unselected (white)
@@ -158,12 +155,7 @@ export default function App() {
       memberStatuses: {},
       updatedAt: new Date().toISOString(),
     };
-
-    const updatedAll = {
-      ...allSessions,
-      [currentDateStr]: updatedSession,
-    };
-    updateSessionsState(updatedAll);
+    updateSession(updatedSession);
   };
 
   // Handler: Role Toggle
@@ -192,10 +184,7 @@ export default function App() {
         ...currentSession,
         pricePerShuttlecock: newConfig.defaultPricePerShuttlecock,
       };
-      updateSessionsState({
-        ...allSessions,
-        [currentDateStr]: updatedSession,
-      });
+      updateSession(updatedSession);
     }
   };
 
@@ -206,18 +195,21 @@ export default function App() {
     Object.keys(updatedAll).forEach((dateKey) => {
       const session = updatedAll[dateKey];
       if (session.memberStatuses[memberId] === 'unpaid') {
-        updatedAll[dateKey] = {
+        const updatedSession = {
           ...session,
           memberStatuses: {
             ...session.memberStatuses,
-            [memberId]: 'paid',
+            [memberId]: 'paid' as PaymentStatus,
           },
           updatedAt: new Date().toISOString(),
         };
+        updatedAll[dateKey] = updatedSession;
+        saveSessionToFirestore(updatedSession);
       }
     });
 
-    updateSessionsState(updatedAll);
+    setAllSessions(updatedAll);
+    saveAllSessionsLocally(updatedAll);
   };
 
   // Handler: Reset all data to seed
