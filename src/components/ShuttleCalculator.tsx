@@ -56,10 +56,33 @@ export const ShuttleCalculator: React.FC<ShuttleCalculatorProps> = ({
               <div className="w-7" />
             )}
 
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl font-black text-amber-400 tracking-tight">
-                {shuttleCount}
-              </span>
+            <div className="flex items-center gap-1">
+              {role === 'admin' ? (
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min="0"
+                  max="999"
+                  value={shuttleCount === 0 ? '' : shuttleCount}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    onUpdateShuttlecocks(isNaN(val) || val < 0 ? 0 : val);
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '' || parseInt(e.target.value, 10) < 0) {
+                      onUpdateShuttlecocks(0);
+                    }
+                  }}
+                  placeholder="0"
+                  className="w-12 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded text-center text-xl font-black text-amber-400 focus:outline-none py-0.5"
+                  title="Nhập trực tiếp số quả cầu"
+                />
+              ) : (
+                <span className="text-xl font-black text-amber-400 tracking-tight">
+                  {shuttleCount}
+                </span>
+              )}
               <span className="text-[11px] text-slate-400 font-medium">quả</span>
             </div>
 

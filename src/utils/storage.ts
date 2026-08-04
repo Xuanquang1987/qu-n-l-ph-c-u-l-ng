@@ -26,6 +26,7 @@ export const DEFAULT_CONFIG: ClubConfig = {
   defaultPricePerShuttlecock: 28000,
   adminPin: '1234',
   finePerLateDay: 10000,
+  paymentCutoffTime: '21:00',
 };
 
 const STORAGE_KEYS = {
@@ -188,20 +189,22 @@ export function getSessionForDate(dateStr: string): DailySession {
  * - 'none' -> White (Không tham gia)
  * - 'paid' -> Green (Đã đóng)
  * - 'unpaid':
- *    - If session.date < today -> 'late' (Màu Tím - Đóng trễ)
- *    - If session.date >= today -> 'unpaid' (Màu Đỏ - Chưa đóng)
+ *    - If current time past cutoff deadline -> 'late' (Màu Vàng - Đóng trễ)
+ *    - If within deadline -> 'unpaid' (Màu Đỏ - Chưa đóng)
  */
 export function getEffectiveStatus(
   status: PaymentStatus | undefined,
   sessionDateStr: string,
-  currentTodayStr: string = getTodayString()
+  cutoffTimeStr: string = '21:00',
+  now: Date = new Date()
 ): 'none' | 'unpaid' | 'paid' | 'late' {
   if (!status || status === 'none') return 'none';
   if (status === 'paid') return 'paid';
-  
+
   // status === 'unpaid'
-  if (sessionDateStr < currentTodayStr) {
-    return 'late'; // Automatically turns purple!
+  const daysLate = calculateDaysLate(sessionDateStr, now, cutoffTimeStr);
+  if (daysLate > 0) {
+    return 'late'; // Automatically turns Yellow!
   }
   return 'unpaid';
 }
@@ -213,9 +216,9 @@ export function calculateSessionPerPersonFee(session: DailySession): number {
   const participantsCount = Object.values(session.memberStatuses).filter(
     (st) => st === 'unpaid' || st === 'paid'
   ).length;
-  
+
   if (participantsCount === 0 || session.shuttlecocks <= 0) return 0;
-  
+
   const totalCost = session.shuttlecocks * session.pricePerShuttlecock;
   return Math.ceil(totalCost / participantsCount);
 }
@@ -230,6 +233,7 @@ export function calculateMemberDebts(
   config: ClubConfig = DEFAULT_CONFIG
 ): MemberDebtSummary[] {
   const summaries: Record<string, MemberDebtSummary> = {};
+  const now = new Date();
 
   members.forEach((m) => {
     summaries[m.id] = {
@@ -245,18 +249,18 @@ export function calculateMemberDebts(
 
   Object.values(allSessions).forEach((session) => {
     const feePerPerson = calculateSessionPerPersonFee(session);
-    
+
     Object.entries(session.memberStatuses).forEach(([memberId, status]) => {
       if (!summaries[memberId]) return;
 
       if (status === 'unpaid') {
-        const effective = getEffectiveStatus(status, session.date, currentTodayStr);
+        const effective = getEffectiveStatus(status, session.date, config.paymentCutoffTime, now);
         summaries[memberId].unpaidSessionsCount += 1;
         summaries[memberId].totalUnpaidBaseAmount += feePerPerson;
 
         if (effective === 'late') {
-          const daysLate = calculateDaysLate(session.date, currentTodayStr);
-          const fine = daysLate * config.finePerLateDay;
+          const daysLate = calculateDaysLate(session.date, now, config.paymentCutoffTime);
+          const fine = daysLate * (config.finePerLateDay || 10000);
           summaries[memberId].lateSessionsCount += 1;
           summaries[memberId].totalLateFineAmount += fine;
         }

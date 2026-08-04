@@ -10,6 +10,8 @@ interface PlayerGridProps {
   sessionDateStr: string;
   perPersonFee: number;
   role: UserRole;
+  cutoffTime?: string;
+  finePerLateDay?: number;
   onStatusChange: (memberId: string, nextStatus: PaymentStatus) => void;
   onSelectAll: () => void;
   onMarkAllPaid: () => void;
@@ -22,6 +24,8 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
   sessionDateStr,
   perPersonFee,
   role,
+  cutoffTime = '21:00',
+  finePerLateDay = 10000,
   onStatusChange,
   onSelectAll,
   onMarkAllPaid,
@@ -33,7 +37,7 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
   // Helper to handle player button click
   const handlePlayerClick = (member: Member) => {
     const rawStatus = memberStatuses[member.id] || 'none';
-    const effective = getEffectiveStatus(rawStatus, sessionDateStr, todayStr);
+    const effective = getEffectiveStatus(rawStatus, sessionDateStr, cutoffTime);
 
     if (role === 'admin') {
       // Cycle through status in Admin mode:
@@ -86,15 +90,15 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
       <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 items-stretch">
         {members.map((m) => {
           const rawStatus = memberStatuses[m.id] || 'none';
-          const effectiveStatus = getEffectiveStatus(rawStatus, sessionDateStr, todayStr);
-          const daysLate = calculateDaysLate(sessionDateStr, todayStr);
-          const fineAmount = daysLate * 10000;
+          const effectiveStatus = getEffectiveStatus(rawStatus, sessionDateStr, cutoffTime);
+          const daysLate = calculateDaysLate(sessionDateStr, new Date(), cutoffTime);
+          const fineAmount = daysLate * finePerLateDay;
 
-          // Color themes based on strict user requirements:
-          // 1. White: 'none'
-          // 2. Red: 'unpaid'
-          // 3. Green: 'paid'
-          // 4. Purple: 'late'
+          // Color themes based on user requirements:
+          // 1. White: 'none' (Nghỉ)
+          // 2. Red: 'unpaid' (Chưa đóng)
+          // 3. Green: 'paid' (Đã đóng)
+          // 4. YELLOW: 'late' (Đóng trễ quá hạn)
           let styleClasses = '';
           let statusBadgeText = '';
           let feeBadgeText = '';
@@ -113,7 +117,7 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
               break;
 
             case 'late':
-              styleClasses = 'bg-purple-600 text-white border-purple-500 hover:bg-purple-500 shadow-purple-950/40';
+              styleClasses = 'bg-yellow-400 text-slate-950 border-yellow-300 hover:bg-yellow-300 shadow-yellow-500/50 animate-pulse-slow font-black';
               statusBadgeText = `Trễ ${daysLate}d (+${fineAmount / 1000}k)`;
               feeBadgeText = `${(perPersonFee + fineAmount) / 1000}k`;
               break;
@@ -154,7 +158,7 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
               <div className="w-full flex items-center justify-center gap-0.5 text-[9.5px] font-bold leading-none py-0.5 opacity-95">
                 {effectiveStatus === 'paid' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                 {effectiveStatus === 'unpaid' && <AlertTriangle className="w-2.5 h-2.5 text-yellow-300" />}
-                {effectiveStatus === 'late' && <Clock className="w-2.5 h-2.5" />}
+                {effectiveStatus === 'late' && <Clock className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />}
                 <span className="truncate">{statusBadgeText}</span>
               </div>
             </button>
@@ -180,9 +184,9 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
 
             {(() => {
               const rawSt = memberStatuses[selectedMemberForInfo.id] || 'none';
-              const effSt = getEffectiveStatus(rawSt, sessionDateStr, todayStr);
-              const daysLate = calculateDaysLate(sessionDateStr, todayStr);
-              const fine = daysLate * 10000;
+              const effSt = getEffectiveStatus(rawSt, sessionDateStr, cutoffTime);
+              const daysLate = calculateDaysLate(sessionDateStr, new Date(), cutoffTime);
+              const fine = daysLate * finePerLateDay;
 
               return (
                 <div className="space-y-2 text-xs">
@@ -200,11 +204,11 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
                     )}
                     {effSt === 'unpaid' && (
                       <span className="bg-red-600 text-white px-2 py-0.5 rounded font-bold">
-                        Chưa đóng tiền
+                        Chưa đóng tiền (Trong hạn)
                       </span>
                     )}
                     {effSt === 'late' && (
-                      <span className="bg-purple-600 text-white px-2 py-0.5 rounded font-bold">
+                      <span className="bg-yellow-400 text-slate-950 px-2 py-0.5 rounded font-black">
                         Đóng trễ ({daysLate} ngày)
                       </span>
                     )}
@@ -222,8 +226,8 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
                         <span>{formatVND(perPersonFee)}</span>
                       </div>
                       {effSt === 'late' && (
-                        <div className="flex justify-between text-purple-300 font-medium">
-                          <span>Tiền phạt trễ (10k/ngày):</span>
+                        <div className="flex justify-between text-yellow-300 font-medium">
+                          <span>Tiền phạt trễ (sau {cutoffTime}):</span>
                           <span>+{formatVND(fine)}</span>
                         </div>
                       )}

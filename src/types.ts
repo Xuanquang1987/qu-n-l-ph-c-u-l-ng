@@ -28,6 +28,7 @@ export interface ClubConfig {
   defaultPricePerShuttlecock: number; // Default 28000
   adminPin: string; // Default '1234'
   finePerLateDay: number; // Default 10000
+  paymentCutoffTime: string; // Default '21:00' (HH:mm cutoff on next day)
 }
 
 export interface MemberDebtSummary {

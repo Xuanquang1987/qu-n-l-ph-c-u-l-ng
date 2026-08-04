@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ClubConfig } from '../types';
 import { formatVND } from '../utils/dateUtils';
-import { KeyRound, RefreshCw, Save, Settings, X } from 'lucide-react';
+import { Clock, KeyRound, RefreshCw, Save, Settings, X } from 'lucide-react';
 
 interface AdminConfigModalProps {
   config: ClubConfig;
@@ -18,6 +18,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
 }) => {
   const [price, setPrice] = useState<number>(config.defaultPricePerShuttlecock || 28000);
   const [fine, setFine] = useState<number>(config.finePerLateDay || 10000);
+  const [cutoffTime, setCutoffTime] = useState<string>(config.paymentCutoffTime || '21:00');
   const [pin, setPin] = useState<string>(config.adminPin || '1234');
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
@@ -26,6 +27,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
     onSaveConfig({
       defaultPricePerShuttlecock: Number(price) || 28000,
       finePerLateDay: Number(fine) || 10000,
+      paymentCutoffTime: cutoffTime || '21:00',
       adminPin: pin || '1234',
     });
     setSavedSuccess(true);
@@ -85,14 +87,28 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 step="1000"
                 value={fine}
                 onChange={(e) => setFine(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-bold text-purple-400 focus:outline-none focus:border-purple-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-bold text-yellow-400 focus:outline-none focus:border-yellow-500"
               />
               <span className="absolute right-2 top-2 text-[10px] text-slate-400">
                 {formatVND(fine)}
               </span>
             </div>
+          </div>
+
+          {/* Cutoff Time setting */}
+          <div>
+            <label className="block text-slate-400 font-medium mb-1 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-yellow-400" />
+              <span>Hạn chót đóng tiền ngày hôm sau:</span>
+            </label>
+            <input
+              type="time"
+              value={cutoffTime}
+              onChange={(e) => setCutoffTime(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono font-bold text-yellow-300 text-center text-sm focus:outline-none focus:border-yellow-500"
+            />
             <p className="text-[10px] text-slate-400 mt-0.5">
-              * Tự động cộng thêm {formatVND(fine)}/ngày khi qua ngày chưa đóng.
+              * Ví dụ chọn <strong>{cutoffTime}</strong>: Đánh hôm nay, cần đóng tiền trước <strong>{cutoffTime}</strong> ngày hôm sau. Quá giờ chưa đóng sẽ tính trễ +{formatVND(fine)} & tên đổi sang <strong>MÀU VÀNG</strong>.
             </p>
           </div>
 

@@ -36,22 +36,44 @@ export function formatVND(amount: number): string {
 }
 
 /**
- * Calculate the number of late days between session date and current date
- * E.g. sessionDate = "2026-08-02", currentDate = "2026-08-04" -> 2 days late
+ * Calculate payment deadline Date object for a given session date and cutoff time string (e.g. "21:00")
+ * Deadline is on sessionDate + 1 day at cutoffTime.
  */
-export function calculateDaysLate(sessionDateStr: string, currentDateStr: string = getTodayString()): number {
-  if (!sessionDateStr || sessionDateStr >= currentDateStr) return 0;
-  
-  const [sYear, sMonth, sDay] = sessionDateStr.split('-').map(Number);
-  const [cYear, cMonth, cDay] = currentDateStr.split('-').map(Number);
-  
-  const sDate = new Date(sYear, sMonth - 1, sDay);
-  const cDate = new Date(cYear, cMonth - 1, cDay);
-  
-  const diffTime = cDate.getTime() - sDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
-  
-  return Math.max(0, diffDays);
+export function getPaymentDeadline(sessionDateStr: string, cutoffTimeStr: string = '21:00'): Date {
+  const [year, month, day] = sessionDateStr.split('-').map(Number);
+  const deadlineDate = new Date(year, month - 1, day);
+  deadlineDate.setDate(deadlineDate.getDate() + 1);
+
+  const [hours, minutes] = (cutoffTimeStr || '21:00').split(':').map(Number);
+  deadlineDate.setHours(hours || 21, minutes || 0, 0, 0);
+
+  return deadlineDate;
+}
+
+/**
+ * Calculate the number of late days past payment deadline
+ * E.g. sessionDate = "2026-08-04", cutoff = "21:00" -> deadline is 2026-08-05 21:00.
+ * If current time > 2026-08-05 21:00, returns >= 1 late day.
+ */
+export function calculateDaysLate(
+  sessionDateStr: string,
+  now: Date = new Date(),
+  cutoffTimeStr: string = '21:00'
+): number {
+  if (!sessionDateStr) return 0;
+
+  const deadline = getPaymentDeadline(sessionDateStr, cutoffTimeStr);
+
+  if (now.getTime() <= deadline.getTime()) {
+    return 0; // Still within grace period / deadline
+  }
+
+  // Time elapsed since deadline passed
+  const diffTimeMs = now.getTime() - deadline.getTime();
+  const diffDays = Math.floor(diffTimeMs / (1000 * 3600 * 24));
+
+  // As soon as deadline passes, it is 1 late day
+  return 1 + diffDays;
 }
 
 /**

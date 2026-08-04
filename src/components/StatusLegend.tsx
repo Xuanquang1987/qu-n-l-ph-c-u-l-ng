@@ -41,11 +41,11 @@ export const StatusLegend: React.FC<StatusLegendProps> = ({
           </span>
         </div>
 
-        {/* Purple / Late */}
+        {/* Yellow / Late */}
         <div className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block shadow-sm" />
-          <span className="text-[10px] text-purple-300 font-medium">
-            Đóng trễ (+10k/d) <span className="text-purple-400 font-bold">({lateCount})</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block shadow-sm" />
+          <span className="text-[10px] text-yellow-300 font-medium">
+            Đóng trễ (+10k) <span className="text-yellow-400 font-bold">({lateCount})</span>
           </span>
         </div>
       </div>

@@ -231,8 +231,8 @@ export default function App() {
   };
 
   // Calculate statistics for current session
-  const todayStr = getTodayString();
   const perPersonFee = calculateSessionPerPersonFee(currentSession);
+  const now = new Date();
 
   let paidCount = 0;
   let unpaidCount = 0;
@@ -241,7 +241,7 @@ export default function App() {
 
   INITIAL_MEMBERS.forEach((m) => {
     const rawSt = currentSession.memberStatuses[m.id] || 'none';
-    const effective = getEffectiveStatus(rawSt, currentDateStr, todayStr);
+    const effective = getEffectiveStatus(rawSt, currentDateStr, config.paymentCutoffTime, now);
     if (effective === 'paid') paidCount++;
     else if (effective === 'unpaid') unpaidCount++;
     else if (effective === 'late') lateCount++;
@@ -289,6 +289,8 @@ export default function App() {
         sessionDateStr={currentDateStr}
         perPersonFee={perPersonFee}
         role={role}
+        cutoffTime={config.paymentCutoffTime}
+        finePerLateDay={config.finePerLateDay}
         onStatusChange={handleStatusChange}
         onSelectAll={handleSelectAll}
         onMarkAllPaid={handleMarkAllPaid}
