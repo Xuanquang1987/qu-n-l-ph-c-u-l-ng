@@ -103,6 +103,16 @@ export default function App() {
     updateSession(updatedSession);
   };
 
+  // Handler: Update guest count for current session
+  const handleUpdateGuestCount = (count: number) => {
+    const updatedSession: DailySession = {
+      ...currentSession,
+      guestCount: Math.max(0, count),
+      updatedAt: new Date().toISOString(),
+    };
+    updateSession(updatedSession);
+  };
+
   // Handler: Update individual member status for current date
   const handleStatusChange = (memberId: string, nextStatus: PaymentStatus) => {
     const updatedStatuses = {
@@ -228,7 +238,7 @@ export default function App() {
   };
 
   // Calculate statistics for current session
-  const perPersonFee = calculateSessionPerPersonFee(currentSession);
+  const perPersonFee = calculateSessionPerPersonFee(currentSession, config);
   const now = new Date();
 
   let paidCount = 0;
@@ -257,6 +267,7 @@ export default function App() {
         onToggleRoleRequest={handleToggleRoleRequest}
         onOpenCalendar={() => setShowCalendarModal(true)}
         onOpenDebtReport={() => setShowDebtReportModal(true)}
+        onOpenConfig={() => setShowConfigModal(true)}
       />
 
       {/* 2. Shuttlecock Fee Calculator section */}
@@ -265,15 +276,24 @@ export default function App() {
         role={role}
         onUpdateShuttlecocks={handleUpdateShuttlecocks}
         onOpenConfig={() => setShowConfigModal(true)}
+        onOpenDebtReport={() => setShowDebtReportModal(true)}
         participantsCount={participantsCount}
+        paidCount={paidCount}
+        unpaidCount={unpaidCount}
+        lateCount={lateCount}
+        defaultGuestFee={config.guestFee || 40000}
       />
 
-      {/* 3. Color Key Legend Bar */}
+      {/* 3. Color Key Legend Bar + Guest Player Controls/Summary */}
       <StatusLegend
         paidCount={paidCount}
         unpaidCount={unpaidCount}
         lateCount={lateCount}
         noneCount={noneCount}
+        guestCount={currentSession.guestCount || 0}
+        guestFee={currentSession.guestFee ?? config.guestFee ?? 40000}
+        role={role}
+        onUpdateGuestCount={handleUpdateGuestCount}
       />
 
       {/* 4. 18 Member Compact Button Matrix (Fits 1 Mobile Screen!) */}

@@ -135,31 +135,29 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
             <button
               key={m.id}
               onClick={() => handlePlayerClick(m)}
-              className={`relative rounded-xl border-2 p-1 sm:p-1.5 flex flex-col justify-between items-center transition-all duration-150 active:scale-95 shadow overflow-hidden ${styleClasses}`}
+              className={`relative rounded-xl border-2 p-1.5 sm:p-2 flex flex-col justify-between items-center transition-all duration-150 active:scale-95 shadow ${styleClasses}`}
             >
               {/* Top row: Player index on left + Fee Badge on right */}
-              <div className="w-full flex items-center justify-between px-0.5 leading-none">
+              <div className="w-full flex items-center justify-between px-0.5 pt-0.5 leading-none shrink-0">
                 <span className="text-[10px] font-extrabold opacity-75">
                   #{m.id.replace('m', '')}
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-black px-1 py-0.5 rounded bg-black/25 tracking-tight leading-none">
+                <span className="text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded bg-black/25 tracking-tight leading-none">
                   {feeDisplay}
                 </span>
               </div>
 
-              {/* CENTER: Member Name - Prominent and Centered */}
-              <div className="w-full flex-1 flex items-center justify-center my-0.5">
-                <span className="font-black text-sm sm:text-base tracking-tight text-center truncate max-w-full drop-shadow-xs">
+              {/* CENTER CONTENT: Member Name + Status Badge centered & shifted slightly upwards */}
+              <div className="w-full flex-1 flex flex-col items-center justify-center -mt-0.5 pb-1 gap-0.5 min-h-0">
+                <span className="font-black text-sm sm:text-base tracking-tight text-center truncate max-w-full leading-tight drop-shadow-xs">
                   {m.name}
                 </span>
-              </div>
-
-              {/* Bottom row: Status badge */}
-              <div className="w-full flex items-center justify-center gap-0.5 text-[10px] sm:text-[11px] font-bold leading-none pb-0.5 opacity-95">
-                {effectiveStatus === 'paid' && <Check className="w-3 h-3 stroke-[3]" />}
-                {effectiveStatus === 'unpaid' && <AlertTriangle className="w-3 h-3 text-yellow-300" />}
-                {effectiveStatus === 'late' && <Clock className="w-3 h-3 text-slate-950 stroke-[3]" />}
-                <span className="truncate">{statusBadgeText}</span>
+                <div className="flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-bold leading-snug opacity-95">
+                  {effectiveStatus === 'paid' && <Check className="w-3 h-3 stroke-[3] shrink-0" />}
+                  {effectiveStatus === 'unpaid' && <AlertTriangle className="w-3 h-3 text-yellow-300 shrink-0" />}
+                  {effectiveStatus === 'late' && <Clock className="w-3 h-3 text-slate-950 stroke-[3] shrink-0" />}
+                  <span className="truncate">{statusBadgeText}</span>
+                </div>
               </div>
             </button>
           );

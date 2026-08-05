@@ -13,34 +13,29 @@ interface ShuttleCalculatorProps {
   paidCount: number;
   unpaidCount: number;
   lateCount: number;
+  defaultGuestFee?: number;
 }
 
 export const ShuttleCalculator: React.FC<ShuttleCalculatorProps> = ({
   session,
   role,
   onUpdateShuttlecocks,
-  onOpenConfig,
   participantsCount,
+  defaultGuestFee = 40000,
 }) => {
   const shuttleCount = session.shuttlecocks || 0;
   const price = session.pricePerShuttlecock || 28000;
   const totalCost = shuttleCount * price;
-  
-  const perPersonFee = participantsCount > 0 ? Math.ceil(totalCost / participantsCount) : 0;
+
+  const guestCount = session.guestCount || 0;
+  const guestFee = session.guestFee ?? defaultGuestFee;
+  const guestRevenue = guestCount * guestFee;
+  const netMemberCost = Math.max(0, totalCost - guestRevenue);
+
+  const perPersonFee = participantsCount > 0 ? Math.ceil(netMemberCost / participantsCount) : 0;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-md text-slate-100 flex flex-col gap-2 shrink-0 relative">
-      {/* Settings Gear icon if Admin */}
-      {role === 'admin' && (
-        <button
-          onClick={onOpenConfig}
-          className="absolute -top-2 -right-2 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-full shadow z-10 transition-transform active:scale-90"
-          title="Cài đặt giá cầu & PIN"
-        >
-          <Settings className="w-3.5 h-3.5" />
-        </button>
-      )}
-
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-md text-slate-100 flex flex-col gap-2 shrink-0">
       {/* Main calculation cards - Prominent display */}
       <div className="grid grid-cols-12 gap-2 items-stretch">
         {/* Shuttlecock Counter Box */}
@@ -111,15 +106,23 @@ export const ShuttleCalculator: React.FC<ShuttleCalculatorProps> = ({
         <div className="col-span-6 bg-gradient-to-br from-emerald-950/90 via-slate-950 to-slate-950 border border-emerald-500/50 p-2 rounded-xl flex flex-col justify-between shadow-inner">
           <div className="flex items-center justify-between text-xs font-semibold text-emerald-300">
             <span>Mỗi người đóng:</span>
-            <span className="text-[11px] font-bold text-emerald-400/80">({participantsCount} người)</span>
+            <span className="text-[11px] font-bold text-emerald-400/80">({participantsCount} TV)</span>
           </div>
 
           <div className="mt-1">
             <span className="text-2xl sm:text-3xl font-black text-emerald-400 block tracking-tight leading-none drop-shadow">
               {perPersonFee > 0 ? formatVND(perPersonFee) : '0đ'}
             </span>
-            <div className="text-[11px] text-slate-400 mt-1 truncate">
-              Tổng tiền: <span className="font-bold text-slate-200">{formatVND(totalCost)}</span>
+            <div className="text-[10px] sm:text-[11px] text-slate-400 mt-1 truncate">
+              {guestRevenue > 0 ? (
+                <span title={`(Tổng ${formatVND(totalCost)} - Khách ${formatVND(guestRevenue)}) / ${participantsCount}`}>
+                  ({formatVND(totalCost)} - {formatVND(guestRevenue)}) / {participantsCount} TV
+                </span>
+              ) : (
+                <>
+                  Tổng tiền: <span className="font-bold text-slate-200">{formatVND(totalCost)}</span>
+                </>
+              )}
             </div>
           </div>
         </div>

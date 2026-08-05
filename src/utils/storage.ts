@@ -29,6 +29,7 @@ export const DEFAULT_CONFIG: ClubConfig = {
   adminPin: '1234',
   finePerLateDay: 10000,
   paymentCutoffTime: '21:00',
+  guestFee: 40000,
 };
 
 const STORAGE_KEYS = {
@@ -260,6 +261,8 @@ export function getSessionForDate(dateStr: string): DailySession {
     date: dateStr,
     shuttlecocks: 0,
     pricePerShuttlecock: config.defaultPricePerShuttlecock,
+    guestCount: 0,
+    guestFee: config.guestFee || 40000,
     memberStatuses: {},
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -297,17 +300,29 @@ export function getEffectiveStatus(
 }
 
 /**
- * Calculate per-person fee for a session
+ * Calculate per-person fee for a session:
+ * ( (shuttlecocks * pricePerShuttlecock) - (guestCount * guestFee) ) / participantsCount
  */
-export function calculateSessionPerPersonFee(session: DailySession): number {
-  const participantsCount = Object.values(session.memberStatuses).filter(
+export function calculateSessionPerPersonFee(
+  session: DailySession,
+  config?: ClubConfig
+): number {
+  const participantsCount = Object.values(session.memberStatuses || {}).filter(
     (st) => st === 'unpaid' || st === 'paid'
   ).length;
 
   if (participantsCount === 0 || session.shuttlecocks <= 0) return 0;
 
-  const totalCost = session.shuttlecocks * session.pricePerShuttlecock;
-  return Math.ceil(totalCost / participantsCount);
+  const shuttlePrice = session.pricePerShuttlecock || config?.defaultPricePerShuttlecock || 28000;
+  const totalCost = session.shuttlecocks * shuttlePrice;
+
+  const guestFeePerPerson = session.guestFee ?? config?.guestFee ?? 40000;
+  const guestCount = session.guestCount || 0;
+  const guestRevenue = guestCount * guestFeePerPerson;
+
+  const netMemberCost = Math.max(0, totalCost - guestRevenue);
+
+  return Math.ceil(netMemberCost / participantsCount);
 }
 
 /**
@@ -335,7 +350,7 @@ export function calculateMemberDebts(
   });
 
   Object.values(allSessions).forEach((session) => {
-    const feePerPerson = calculateSessionPerPersonFee(session);
+    const feePerPerson = calculateSessionPerPersonFee(session, config);
 
     Object.entries(session.memberStatuses).forEach(([memberId, status]) => {
       if (!summaries[memberId]) return;

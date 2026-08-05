@@ -17,6 +17,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
   onClose,
 }) => {
   const [price, setPrice] = useState<number>(config.defaultPricePerShuttlecock || 28000);
+  const [guestFee, setGuestFee] = useState<number>(config.guestFee || 40000);
   const [fine, setFine] = useState<number>(config.finePerLateDay || 10000);
   const [cutoffTime, setCutoffTime] = useState<string>(config.paymentCutoffTime || '21:00');
   const [pin, setPin] = useState<string>(config.adminPin || '1234');
@@ -26,6 +27,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
     e.preventDefault();
     onSaveConfig({
       defaultPricePerShuttlecock: Number(price) || 28000,
+      guestFee: Number(guestFee) || 40000,
       finePerLateDay: Number(fine) || 10000,
       paymentCutoffTime: cutoffTime || '21:00',
       adminPin: pin || '1234',
@@ -74,6 +76,42 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             <p className="text-[10px] text-slate-400 mt-0.5">
               * Mặc định là 28.000 VNĐ / quả.
             </p>
+          </div>
+
+          {/* Guest Fee setting */}
+          <div>
+            <label className="block text-slate-400 font-medium mb-1">
+              Phí cố định người đến giao lưu (VNĐ/người):
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="5000"
+                value={guestFee}
+                onChange={(e) => setGuestFee(Number(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-bold text-cyan-400 focus:outline-none focus:border-cyan-500"
+              />
+              <span className="absolute right-2 top-2 text-[10px] text-slate-400">
+                {formatVND(guestFee)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[10px] text-slate-500">Mức chuẩn:</span>
+              {[30000, 40000, 50000, 60000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setGuestFee(val)}
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                    guestFee === val
+                      ? 'bg-cyan-500 text-slate-950 font-bold'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {val / 1000}k
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Fine per late day */}
