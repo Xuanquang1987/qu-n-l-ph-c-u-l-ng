@@ -46,40 +46,26 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-slate-900 text-white p-2 rounded-xl shadow-md border border-slate-800 flex flex-col gap-1.5 shrink-0 select-none">
-      {/* App title + Admin role switch */}
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5">
-          <span className="bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
-            CLB 18
-          </span>
-          <h1 className="font-bold text-sm tracking-tight text-amber-400 truncate flex items-center gap-1.5">
-            <span>QUẢN LÝ PHÍ CẦU LÔNG</span>
-            <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[9px] font-medium px-1.5 py-0.2 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Cloud Realtime</span>
-            </span>
-          </h1>
-        </div>
-
-        {/* Role toggle button */}
+      {/* Centered Large Admin Button */}
+      <div className="flex justify-center w-full">
         <button
           onClick={onToggleRoleRequest}
-          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all active:scale-95 ${
+          className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md ${
             role === 'admin'
-              ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+              ? 'bg-emerald-500 text-slate-950 shadow-emerald-950/50 hover:bg-emerald-400'
+              : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
           }`}
-          title={role === 'admin' ? 'Chế độ Quản trị viên (Admin)' : 'Chế độ Thành viên (Chỉ xem)'}
+          title={role === 'admin' ? 'Đang ở quyền Admin. Bấm để thoát về Chế độ Thành viên' : 'Đang ở Chế độ Thành viên. Bấm để đăng nhập Admin'}
         >
           {role === 'admin' ? (
             <>
-              <Unlock className="w-3 h-3 text-slate-950" />
-              <span>Admin</span>
+              <Unlock className="w-4 h-4 text-slate-950" />
+              <span className="tracking-wide">QUYỀN ADMIN (ĐANG BẬT) - BẤM ĐỂ THOÁT</span>
             </>
           ) : (
             <>
-              <Lock className="w-3 h-3 text-slate-400" />
-              <span>Thành viên</span>
+              <Lock className="w-4 h-4 text-amber-400" />
+              <span className="tracking-wide">CHẾ ĐỘ THÀNH VIÊN (BẤM ĐỂ VÀO ADMIN)</span>
             </>
           )}
         </button>
