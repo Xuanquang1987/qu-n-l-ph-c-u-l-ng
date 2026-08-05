@@ -95,21 +95,76 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             </div>
           </div>
 
-          {/* Cutoff Time setting */}
+          {/* Cutoff Time setting in pure 24h format (no CH/SA) */}
           <div>
-            <label className="block text-slate-400 font-medium mb-1 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-yellow-400" />
-              <span>Hạn chót đóng tiền ngày hôm sau:</span>
+            <label className="block text-slate-400 font-medium mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-yellow-400" />
+                <span>Hạn chót đóng tiền (24h):</span>
+              </span>
+              <span className="bg-amber-500 text-slate-950 font-black text-xs px-2 py-0.5 rounded shadow">
+                {cutoffTime.replace(':', 'h')} (24H)
+              </span>
             </label>
-            <input
-              type="time"
-              value={cutoffTime}
-              onChange={(e) => setCutoffTime(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono font-bold text-yellow-300 text-center text-sm focus:outline-none focus:border-yellow-500"
-            />
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              * Ví dụ chọn <strong>{cutoffTime}</strong>: Đánh hôm nay, cần đóng tiền trước <strong>{cutoffTime}</strong> ngày hôm sau. Quá giờ chưa đóng sẽ tính trễ +{formatVND(fine)} & tên đổi sang <strong>MÀU VÀNG</strong>.
-            </p>
+
+            {/* 24-Hour Selector: Hour & Minute dropdowns */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1">
+                <select
+                  value={cutoffTime.split(':')[0] || '21'}
+                  onChange={(e) => {
+                    const h = e.target.value.padStart(2, '0');
+                    const m = (cutoffTime.split(':')[1] || '00').padStart(2, '0');
+                    setCutoffTime(`${h}:${m}`);
+                  }}
+                  className="w-full bg-transparent text-center font-mono font-bold text-yellow-300 text-sm focus:outline-none cursor-pointer py-1"
+                >
+                  {Array.from({ length: 24 }).map((_, i) => {
+                    const hourStr = String(i).padStart(2, '0');
+                    return (
+                      <option key={hourStr} value={hourStr} className="bg-slate-900 text-slate-100">
+                        {hourStr}h ({i < 12 ? 'Sáng/Trưa' : 'Chiều/Tối'})
+                      </option>
+                    );
+                  })}
+                </select>
+                <span className="text-yellow-400 font-bold px-1">:</span>
+                <select
+                  value={cutoffTime.split(':')[1] || '00'}
+                  onChange={(e) => {
+                    const h = (cutoffTime.split(':')[0] || '21').padStart(2, '0');
+                    const m = e.target.value.padStart(2, '0');
+                    setCutoffTime(`${h}:${m}`);
+                  }}
+                  className="w-full bg-transparent text-center font-mono font-bold text-yellow-300 text-sm focus:outline-none cursor-pointer py-1"
+                >
+                  {['00', '15', '30', '45'].map((m) => (
+                    <option key={m} value={m} className="bg-slate-900 text-slate-100">
+                      {m} phút
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quick 24h Presets */}
+            <div className="flex items-center gap-1 mt-2">
+              <span className="text-[10px] text-slate-500 font-medium">Chọn nhanh:</span>
+              {['18:00', '20:00', '21:00', '22:00', '23:00'].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setCutoffTime(preset)}
+                  className={`text-[11px] font-mono px-2 py-0.5 rounded transition-all ${
+                    cutoffTime === preset
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {preset.replace(':', 'h')}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Admin PIN */}
