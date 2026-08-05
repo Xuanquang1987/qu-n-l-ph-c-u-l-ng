@@ -119,14 +119,14 @@ export const ShuttleCalculator: React.FC<ShuttleCalculatorProps> = ({
       </div>
 
       {/* Sub-toolbar: Quick action buttons for Admin & Debt overview button */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={onOpenDebtReport}
-            className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-md text-[11px] font-medium transition-colors"
+            className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0"
           >
             <Calculator className="w-3 h-3 text-amber-400" />
-            <span>Xem Tổng Sổ Nợ</span>
+            <span>Xem Sổ Nợ</span>
           </button>
         </div>
 

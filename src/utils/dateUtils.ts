@@ -12,6 +12,20 @@ export function getTodayString(): string {
 }
 
 /**
+ * Returns default active display date based on 18:00 (6:00 PM) rule:
+ * - Before 18:00 (6:00 PM), returns yesterday's date string (YYYY-MM-DD).
+ * - From 18:00 (6:00 PM) onwards, returns today's date string (YYYY-MM-DD).
+ */
+export function getDefaultDisplayDate(now: Date = new Date()): string {
+  const currentHour = now.getHours();
+  const todayStr = getTodayString();
+  if (currentHour < 18) {
+    return addDaysToDateStr(todayStr, -1);
+  }
+  return todayStr;
+}
+
+/**
  * Format YYYY-MM-DD to friendly Vietnamese date: "Thứ 3, 04/08/2026"
  */
 export function formatVietnameseDate(dateStr: string): string {

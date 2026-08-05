@@ -1,7 +1,7 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Lock, Unlock, ShieldAlert } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Lock, Unlock, Clock } from 'lucide-react';
 import { UserRole } from '../types';
-import { formatVietnameseDate, getTodayString } from '../utils/dateUtils';
+import { formatVietnameseDate, getDefaultDisplayDate, getTodayString } from '../utils/dateUtils';
 
 interface HeaderProps {
   currentDateStr: string;
@@ -19,7 +19,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCalendar,
 }) => {
   const todayStr = getTodayString();
+  const defaultDateStr = getDefaultDisplayDate();
   const isToday = currentDateStr === todayStr;
+  const isDefaultDate = currentDateStr === defaultDateStr;
+  const isBefore18h = new Date().getHours() < 18;
 
   const handlePrevDay = () => {
     const [y, m, d] = currentDateStr.split('-').map(Number);
@@ -104,10 +107,31 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {!isToday && (
+          {isBefore18h && isDefaultDate && currentDateStr !== todayStr && (
+            <span
+              className="inline-flex items-center gap-1 bg-amber-950/90 text-amber-300 border border-amber-800/80 text-[9px] font-semibold px-1.5 py-0.5 rounded"
+              title="Đang hiển thị buổi hôm qua trước 18h để rà soát đóng phí tránh bị phạt"
+            >
+              <Clock className="w-3 h-3 text-amber-400" />
+              <span>Trước 18h</span>
+            </span>
+          )}
+
+          {!isDefaultDate && (
+            <button
+              onClick={() => onDateChange(defaultDateStr)}
+              className="bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors"
+              title="Quay lại ngày hiển thị mặc định"
+            >
+              Mặc định
+            </button>
+          )}
+
+          {!isToday && isDefaultDate && (
             <button
               onClick={() => onDateChange(todayStr)}
-              className="bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors"
+              className="bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors"
+              title="Xem buổi hôm nay"
             >
               Hôm nay
             </button>

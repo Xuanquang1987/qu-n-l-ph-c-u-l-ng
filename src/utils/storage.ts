@@ -226,6 +226,16 @@ export function subscribeFirestoreSessions(onUpdate: (sessions: Record<string, D
         snapshot.docs.forEach((d) => {
           result[d.id] = d.data() as DailySession;
         });
+
+        // Merge local storage sessions if any exist locally that aren't in Firestore yet
+        const local = loadAllSessions();
+        Object.entries(local).forEach(([dateStr, localSession]) => {
+          if (!result[dateStr]) {
+            result[dateStr] = localSession;
+            saveSessionToFirestore(localSession);
+          }
+        });
+
         saveAllSessionsLocally(result);
         onUpdate(result);
       }

@@ -13,7 +13,7 @@ import { PlayerGrid } from './components/PlayerGrid';
 import { ShuttleCalculator } from './components/ShuttleCalculator';
 import { StatusLegend } from './components/StatusLegend';
 import { ClubConfig, DailySession, Member, PaymentStatus, UserRole } from './types';
-import { getTodayString } from './utils/dateUtils';
+import { getDefaultDisplayDate, getTodayString } from './utils/dateUtils';
 import {
   calculateSessionPerPersonFee,
   getEffectiveStatus,
@@ -28,8 +28,8 @@ import {
 } from './utils/storage';
 
 export default function App() {
-  // State initialization
-  const [currentDateStr, setCurrentDateStr] = useState<string>(getTodayString());
+  // State initialization: default display date stays on yesterday until 18:00 (6:00 PM)
+  const [currentDateStr, setCurrentDateStr] = useState<string>(getDefaultDisplayDate());
   const [allSessions, setAllSessions] = useState<Record<string, DailySession>>({});
   const [config, setConfig] = useState<ClubConfig>(loadClubConfig());
   const [role, setRole] = useState<UserRole>('member');
@@ -52,12 +52,17 @@ export default function App() {
       setAllSessions(newSessions);
     });
 
-    // 3. Periodically update date string if app is left open across midnight
+    // 3. Periodically update default date string if time passes 18:00 cutoff or midnight
     const interval = setInterval(() => {
-      const today = getTodayString();
-      if (today !== currentDateStr && currentDateStr === getTodayString()) {
-        setCurrentDateStr(today);
-      }
+      const defaultDate = getDefaultDisplayDate();
+      setCurrentDateStr((prev) => {
+        // Auto update if user was on the default calculated date and it changed
+        const hour = new Date().getHours();
+        if (hour >= 18 && prev !== defaultDate) {
+          return defaultDate;
+        }
+        return prev;
+      });
     }, 60000);
 
     return () => {
