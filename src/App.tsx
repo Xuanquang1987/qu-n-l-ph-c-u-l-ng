@@ -258,7 +258,7 @@ export default function App() {
   const participantsCount = paidCount + unpaidCount + lateCount;
 
   return (
-    <div className="w-full h-[100dvh] max-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col justify-between p-2 overflow-hidden select-none font-sans max-w-md mx-auto shadow-2xl border-x border-slate-900">
+    <div className="w-full min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col justify-start gap-2 p-2 select-none font-sans max-w-md mx-auto shadow-2xl border-x border-slate-900 overflow-y-auto">
       {/* 1. Header with Date Navigator & Admin Mode Switch */}
       <Header
         currentDateStr={currentDateStr}
