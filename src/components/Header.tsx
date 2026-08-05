@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Lock, Unlock, Clock } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Lock, Unlock, Clock, Calculator } from 'lucide-react';
 import { UserRole } from '../types';
 import { formatVietnameseDate, getDefaultDisplayDate, getTodayString } from '../utils/dateUtils';
 
@@ -9,6 +9,7 @@ interface HeaderProps {
   role: UserRole;
   onToggleRoleRequest: () => void;
   onOpenCalendar: () => void;
+  onOpenDebtReport: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   role,
   onToggleRoleRequest,
   onOpenCalendar,
+  onOpenDebtReport,
 }) => {
   const todayStr = getTodayString();
   const defaultDateStr = getDefaultDisplayDate();
@@ -46,11 +48,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-slate-900 text-white p-2 rounded-xl shadow-md border border-slate-800 flex flex-col gap-1.5 shrink-0 select-none">
-      {/* Centered Large Admin Button */}
-      <div className="flex justify-center w-full">
+      {/* Top row: Centered Admin Button + Compact Sổ Nợ button in top right */}
+      <div className="flex items-center justify-between w-full gap-2">
         <button
           onClick={onToggleRoleRequest}
-          className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md ${
             role === 'admin'
               ? 'bg-emerald-500 text-slate-950 shadow-emerald-950/50 hover:bg-emerald-400'
               : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
@@ -60,14 +62,23 @@ export const Header: React.FC<HeaderProps> = ({
           {role === 'admin' ? (
             <>
               <Unlock className="w-4 h-4 text-slate-950" />
-              <span className="tracking-wide">QUYỀN ADMIN (ĐANG BẬT) - BẤM ĐỂ THOÁT</span>
+              <span className="tracking-wide text-[11px] sm:text-xs">QUYỀN ADMIN (ĐANG BẬT) - BẤM ĐỂ THOÁT</span>
             </>
           ) : (
             <>
               <Lock className="w-4 h-4 text-amber-400" />
-              <span className="tracking-wide">CHẾ ĐỘ THÀNH VIÊN (BẤM ĐỂ VÀO ADMIN)</span>
+              <span className="tracking-wide text-[11px] sm:text-xs">CHẾ ĐỘ THÀNH VIÊN (VÀO ADMIN)</span>
             </>
           )}
+        </button>
+
+        <button
+          onClick={onOpenDebtReport}
+          className="flex items-center gap-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0 shadow"
+          title="Xem Sổ Nợ"
+        >
+          <Calculator className="w-3.5 h-3.5 text-amber-400" />
+          <span>Sổ Nợ</span>
         </button>
       </div>
 

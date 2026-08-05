@@ -256,6 +256,7 @@ export default function App() {
         role={role}
         onToggleRoleRequest={handleToggleRoleRequest}
         onOpenCalendar={() => setShowCalendarModal(true)}
+        onOpenDebtReport={() => setShowDebtReportModal(true)}
       />
 
       {/* 2. Shuttlecock Fee Calculator section */}
@@ -264,11 +265,7 @@ export default function App() {
         role={role}
         onUpdateShuttlecocks={handleUpdateShuttlecocks}
         onOpenConfig={() => setShowConfigModal(true)}
-        onOpenDebtReport={() => setShowDebtReportModal(true)}
         participantsCount={participantsCount}
-        paidCount={paidCount}
-        unpaidCount={unpaidCount}
-        lateCount={lateCount}
       />
 
       {/* 3. Color Key Legend Bar */}

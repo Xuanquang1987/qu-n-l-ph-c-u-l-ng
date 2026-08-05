@@ -101,32 +101,33 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
           // 4. YELLOW: 'late' (Đóng trễ quá hạn)
           let styleClasses = '';
           let statusBadgeText = '';
-          let feeBadgeText = '';
+          let feeDisplay = '-';
 
           switch (effectiveStatus) {
             case 'paid':
               styleClasses = 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500 shadow-emerald-950/40';
               statusBadgeText = 'Đã đóng';
-              feeBadgeText = perPersonFee > 0 ? `${perPersonFee / 1000}k` : '✓';
+              feeDisplay = perPersonFee > 0 ? (perPersonFee % 1000 === 0 ? `${perPersonFee / 1000}k` : `${(perPersonFee / 1000).toFixed(1)}k`) : '0k';
               break;
 
             case 'unpaid':
               styleClasses = 'bg-red-600 text-white border-red-500 hover:bg-red-500 shadow-red-950/40 animate-pulse-slow';
               statusBadgeText = 'Chưa đóng';
-              feeBadgeText = perPersonFee > 0 ? `${perPersonFee / 1000}k` : 'Cần đóng';
+              feeDisplay = perPersonFee > 0 ? (perPersonFee % 1000 === 0 ? `${perPersonFee / 1000}k` : `${(perPersonFee / 1000).toFixed(1)}k`) : '0k';
               break;
 
             case 'late':
               styleClasses = 'bg-yellow-400 text-slate-950 border-yellow-300 hover:bg-yellow-300 shadow-yellow-500/50 animate-pulse-slow font-black';
               statusBadgeText = `Trễ ${daysLate}d (+${fineAmount / 1000}k)`;
-              feeBadgeText = `${(perPersonFee + fineAmount) / 1000}k`;
+              const totalLateFee = perPersonFee + fineAmount;
+              feeDisplay = totalLateFee > 0 ? (totalLateFee % 1000 === 0 ? `${totalLateFee / 1000}k` : `${(totalLateFee / 1000).toFixed(1)}k`) : '0k';
               break;
 
             case 'none':
             default:
               styleClasses = 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100 shadow-sm';
               statusBadgeText = 'Nghỉ';
-              feeBadgeText = '-';
+              feeDisplay = '-';
               break;
           }
 
@@ -134,31 +135,30 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
             <button
               key={m.id}
               onClick={() => handlePlayerClick(m)}
-              className={`relative rounded-xl border-2 p-1 px-1.5 flex flex-col justify-between items-center transition-all duration-150 active:scale-95 shadow overflow-hidden ${styleClasses}`}
+              className={`relative rounded-xl border-2 p-1 sm:p-1.5 flex flex-col justify-between items-center transition-all duration-150 active:scale-95 shadow overflow-hidden ${styleClasses}`}
             >
-              {/* Top row: Fee badge positioned top right */}
-              <div className="w-full flex items-center justify-between">
-                <span className="text-[9px] font-bold opacity-60">
+              {/* Top row: Player index on left + Fee Badge on right */}
+              <div className="w-full flex items-center justify-between px-0.5 leading-none">
+                <span className="text-[10px] font-extrabold opacity-75">
                   #{m.id.replace('m', '')}
                 </span>
-
-                <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-black/25 tracking-tighter">
-                  {feeBadgeText}
+                <span className="text-[10px] sm:text-[11px] font-black px-1 py-0.5 rounded bg-black/25 tracking-tight leading-none">
+                  {feeDisplay}
                 </span>
               </div>
 
-              {/* CENTER: Member Name - BIG, BOLD, CENTERED */}
+              {/* CENTER: Member Name - Prominent and Centered */}
               <div className="w-full flex-1 flex items-center justify-center my-0.5">
-                <span className="font-black text-base sm:text-lg tracking-tight text-center leading-tight drop-shadow-xs">
+                <span className="font-black text-sm sm:text-base tracking-tight text-center truncate max-w-full drop-shadow-xs">
                   {m.name}
                 </span>
               </div>
 
               {/* Bottom row: Status badge */}
-              <div className="w-full flex items-center justify-center gap-0.5 text-[9.5px] font-bold leading-none py-0.5 opacity-95">
-                {effectiveStatus === 'paid' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                {effectiveStatus === 'unpaid' && <AlertTriangle className="w-2.5 h-2.5 text-yellow-300" />}
-                {effectiveStatus === 'late' && <Clock className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />}
+              <div className="w-full flex items-center justify-center gap-0.5 text-[10px] sm:text-[11px] font-bold leading-none pb-0.5 opacity-95">
+                {effectiveStatus === 'paid' && <Check className="w-3 h-3 stroke-[3]" />}
+                {effectiveStatus === 'unpaid' && <AlertTriangle className="w-3 h-3 text-yellow-300" />}
+                {effectiveStatus === 'late' && <Clock className="w-3 h-3 text-slate-950 stroke-[3]" />}
                 <span className="truncate">{statusBadgeText}</span>
               </div>
             </button>
