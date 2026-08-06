@@ -32,6 +32,8 @@ export interface ClubConfig {
   finePerLateDay: number; // Default 10000
   paymentCutoffTime: string; // Default '21:00' (HH:mm cutoff on next day)
   guestFee?: number; // Default 40000 (Phí thu giao lưu / người)
+  monthlyElectricityFee?: number; // Default 20000 (Phí tiền điện hàng tháng / người)
+  electricityPayments?: Record<string, Record<string, boolean>>; // monthStr YYYY-MM -> memberId -> true/false
 }
 
 export interface MemberDebtSummary {

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Member, PaymentStatus, UserRole } from '../types';
+import { ClubConfig, Member, PaymentStatus, UserRole } from '../types';
 import { calculateDaysLate, formatVND, getTodayString } from '../utils/dateUtils';
-import { getEffectiveStatus } from '../utils/storage';
-import { Check, Info, AlertTriangle, Clock } from 'lucide-react';
+import { getEffectiveStatus, hasPaidElectricity, isElectricityMember } from '../utils/storage';
+import { Check, Info, AlertTriangle, Clock, Zap } from 'lucide-react';
 
 interface PlayerGridProps {
   members: Member[];
@@ -10,6 +10,7 @@ interface PlayerGridProps {
   sessionDateStr: string;
   perPersonFee: number;
   role: UserRole;
+  config: ClubConfig;
   cutoffTime?: string;
   finePerLateDay?: number;
   onStatusChange: (memberId: string, nextStatus: PaymentStatus) => void;
@@ -24,6 +25,7 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
   sessionDateStr,
   perPersonFee,
   role,
+  config,
   cutoffTime = '21:00',
   finePerLateDay = 10000,
   onStatusChange,
@@ -34,10 +36,12 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
   const todayStr = getTodayString();
   const [selectedMemberForInfo, setSelectedMemberForInfo] = useState<Member | null>(null);
 
+  const monthStr = sessionDateStr.substring(0, 7); // YYYY-MM
+  const electricityFee = config.monthlyElectricityFee || 20000;
+
   // Helper to handle player button click
   const handlePlayerClick = (member: Member) => {
     const rawStatus = memberStatuses[member.id] || 'none';
-    const effective = getEffectiveStatus(rawStatus, sessionDateStr, cutoffTime);
 
     if (role === 'admin') {
       // Cycle through status in Admin mode:
@@ -94,40 +98,55 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
           const daysLate = calculateDaysLate(sessionDateStr, new Date(), cutoffTime);
           const fineAmount = daysLate * finePerLateDay;
 
+          // Electricity payment check
+          const isElecMember = isElectricityMember(m);
+          const hasPaidElec = hasPaidElectricity(config, m.id, monthStr);
+          const owesElectricity = isElecMember && !hasPaidElec;
+
           // Color themes based on user requirements:
-          // 1. White: 'none' (Nghỉ)
-          // 2. Red: 'unpaid' (Chưa đóng)
-          // 3. Green: 'paid' (Đã đóng)
-          // 4. YELLOW: 'late' (Đóng trễ quá hạn)
           let styleClasses = '';
           let statusBadgeText = '';
           let feeDisplay = '-';
+
+          // Effective fee calculation
+          let finalPayable = perPersonFee;
+          if (effectiveStatus === 'late') {
+            finalPayable += fineAmount;
+          }
+
+          // If member hasn't paid monthly electricity, add electricity fee if active or unpaid
+          if (owesElectricity && effectiveStatus !== 'none') {
+            finalPayable += electricityFee;
+          }
+
+          const formatK = (val: number) =>
+            val > 0 ? (val % 1000 === 0 ? `${val / 1000}k` : `${(val / 1000).toFixed(1)}k`) : '0k';
 
           switch (effectiveStatus) {
             case 'paid':
               styleClasses = 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500 shadow-emerald-950/40';
               statusBadgeText = 'Đã đóng';
-              feeDisplay = perPersonFee > 0 ? (perPersonFee % 1000 === 0 ? `${perPersonFee / 1000}k` : `${(perPersonFee / 1000).toFixed(1)}k`) : '0k';
+              // If electricity is still owed, show remaining electricity amount. If everything is paid, hide fee badge.
+              feeDisplay = owesElectricity ? formatK(electricityFee) : '';
               break;
 
             case 'unpaid':
               styleClasses = 'bg-red-600 text-white border-red-500 hover:bg-red-500 shadow-red-950/40 animate-pulse-slow';
               statusBadgeText = 'Chưa đóng';
-              feeDisplay = perPersonFee > 0 ? (perPersonFee % 1000 === 0 ? `${perPersonFee / 1000}k` : `${(perPersonFee / 1000).toFixed(1)}k`) : '0k';
+              feeDisplay = formatK(finalPayable);
               break;
 
             case 'late':
               styleClasses = 'bg-yellow-400 text-slate-950 border-yellow-300 hover:bg-yellow-300 shadow-yellow-500/50 animate-pulse-slow font-black';
               statusBadgeText = `Trễ ${daysLate}d (+${fineAmount / 1000}k)`;
-              const totalLateFee = perPersonFee + fineAmount;
-              feeDisplay = totalLateFee > 0 ? (totalLateFee % 1000 === 0 ? `${totalLateFee / 1000}k` : `${(totalLateFee / 1000).toFixed(1)}k`) : '0k';
+              feeDisplay = formatK(finalPayable);
               break;
 
             case 'none':
             default:
               styleClasses = 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100 shadow-sm';
               statusBadgeText = 'Nghỉ';
-              feeDisplay = '-';
+              feeDisplay = owesElectricity ? formatK(electricityFee) : '';
               break;
           }
 
@@ -137,17 +156,30 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
               onClick={() => handlePlayerClick(m)}
               className={`relative rounded-xl border-2 p-1.5 sm:p-2 flex flex-col justify-between items-center transition-all duration-150 active:scale-95 shadow ${styleClasses}`}
             >
-              {/* Top row: Player index on left + Fee Badge on right */}
+              {/* Top row: Player index + Unpaid Electricity lightning badge + Fee Badge */}
               <div className="w-full flex items-center justify-between px-0.5 pt-0.5 leading-none shrink-0">
                 <span className="text-[10px] font-extrabold opacity-75">
                   #{m.id.replace('m', '')}
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded bg-black/25 tracking-tight leading-none">
-                  {feeDisplay}
-                </span>
+
+                <div className="flex items-center gap-0.5">
+                  {owesElectricity && (
+                    <span
+                      title={`Chưa đóng tiền điện tháng ${monthStr} (${formatVND(electricityFee)})`}
+                      className="inline-flex items-center text-[10px] font-black bg-amber-400 text-slate-950 px-1 py-0.2 rounded-full border border-amber-300 shadow-xs leading-none"
+                    >
+                      ⚡
+                    </span>
+                  )}
+                  {feeDisplay ? (
+                    <span className="text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded bg-black/25 tracking-tight leading-none">
+                      {feeDisplay}
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
-              {/* CENTER CONTENT: Member Name + Status Badge centered & shifted slightly upwards */}
+              {/* CENTER CONTENT: Member Name + Status Badge */}
               <div className="w-full flex-1 flex flex-col items-center justify-center -mt-0.5 pb-1 gap-0.5 min-h-0">
                 <span className="font-black text-sm sm:text-base tracking-tight text-center truncate max-w-full leading-tight drop-shadow-xs">
                   {m.name}
@@ -186,6 +218,19 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
               const daysLate = calculateDaysLate(sessionDateStr, new Date(), cutoffTime);
               const fine = daysLate * finePerLateDay;
 
+              const isElecMember = isElectricityMember(selectedMemberForInfo);
+              const hasPaidElec = hasPaidElectricity(config, selectedMemberForInfo.id, monthStr);
+              const owesElec = isElecMember && !hasPaidElec;
+
+              let totalOwed = 0;
+              if (effSt !== 'none') {
+                totalOwed += perPersonFee;
+                if (effSt === 'late') totalOwed += fine;
+                if (owesElec) totalOwed += electricityFee;
+              } else if (owesElec) {
+                totalOwed += electricityFee;
+              }
+
               return (
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
@@ -194,49 +239,76 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Trạng thái:</span>
+                    <span className="text-slate-400">Cầu & Sân:</span>
                     {effSt === 'paid' && (
                       <span className="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-bold">
-                        Đã đóng tiền ✓
+                        Đã đóng tiền cầu ✓
                       </span>
                     )}
                     {effSt === 'unpaid' && (
                       <span className="bg-red-600 text-white px-2 py-0.5 rounded font-bold">
-                        Chưa đóng tiền (Trong hạn)
+                        Chưa đóng cầu (Trong hạn)
                       </span>
                     )}
                     {effSt === 'late' && (
                       <span className="bg-yellow-400 text-slate-950 px-2 py-0.5 rounded font-black">
-                        Đóng trễ ({daysLate} ngày)
+                        Trễ tiền cầu ({daysLate} ngày)
                       </span>
                     )}
                     {effSt === 'none' && (
                       <span className="bg-slate-700 text-slate-200 px-2 py-0.5 rounded">
-                        Không tham gia
+                        Nghỉ cầu buổi này
                       </span>
                     )}
                   </div>
 
-                  {effSt !== 'none' && (
-                    <div className="bg-slate-950 p-2 rounded-lg border border-slate-800 space-y-1">
+                  {/* Electricity Status Row */}
+                  {isElecMember && (
+                    <div className="flex justify-between items-center border-t border-slate-800 pt-1.5">
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                        Tiền điện tháng {monthStr.split('-')[1]}:
+                      </span>
+                      {hasPaidElec ? (
+                        <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded font-bold text-[11px]">
+                          ✓ Đã đóng (20k)
+                        </span>
+                      ) : (
+                        <span className="bg-amber-500 text-slate-950 px-2 py-0.5 rounded font-extrabold text-[11px]">
+                          ⚡ Chưa đóng (+{formatVND(electricityFee)})
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payment Summary Box */}
+                  <div className="bg-slate-950 p-2 rounded-lg border border-slate-800 space-y-1 mt-2">
+                    {effSt !== 'none' && (
                       <div className="flex justify-between">
                         <span className="text-slate-400">Phí sân + cầu:</span>
                         <span>{formatVND(perPersonFee)}</span>
                       </div>
-                      {effSt === 'late' && (
-                        <div className="flex justify-between text-yellow-300 font-medium">
-                          <span>Tiền phạt trễ (sau {cutoffTime}):</span>
-                          <span>+{formatVND(fine)}</span>
-                        </div>
-                      )}
-                      <div className="border-t border-slate-800 pt-1 flex justify-between font-bold text-amber-400">
-                        <span>Tổng cần thanh toán:</span>
-                        <span>
-                          {formatVND(effSt === 'late' ? perPersonFee + fine : perPersonFee)}
-                        </span>
+                    )}
+
+                    {effSt === 'late' && (
+                      <div className="flex justify-between text-yellow-300 font-medium">
+                        <span>Tiền phạt trễ (sau {cutoffTime}):</span>
+                        <span>+{formatVND(fine)}</span>
                       </div>
+                    )}
+
+                    {owesElec && (
+                      <div className="flex justify-between text-amber-300 font-medium">
+                        <span>⚡ Tiền điện tháng này:</span>
+                        <span>+{formatVND(electricityFee)}</span>
+                      </div>
+                    )}
+
+                    <div className="border-t border-slate-800 pt-1 flex justify-between font-bold text-amber-400">
+                      <span>Tổng cần thanh toán:</span>
+                      <span>{formatVND(totalOwed)}</span>
                     </div>
-                  )}
+                  </div>
 
                   {role === 'member' && (
                     <p className="text-[11px] text-slate-400 italic text-center mt-1">

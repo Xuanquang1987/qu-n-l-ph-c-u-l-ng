@@ -24,13 +24,48 @@ export const INITIAL_MEMBERS: Member[] = [
   { id: 'm18', name: 'Vững' },
 ];
 
+export const FIXED_ELECTRICITY_MEMBER_NAMES = [
+  'Cường',
+  'Quang',
+  'Bảo',
+  'Tuyển',
+  'Đức',
+  'Phong',
+  'Trụ',
+  'Dũng',
+  'Hiển',
+  'Hoàng',
+  'Nghĩa',
+  'Miết',
+  'Kiêm',
+];
+
+export function isElectricityMember(memberOrName: Member | string): boolean {
+  const name = typeof memberOrName === 'string' ? memberOrName : memberOrName.name;
+  const nameNorm = name.trim().toLowerCase();
+  return FIXED_ELECTRICITY_MEMBER_NAMES.some(
+    (n) => n.trim().toLowerCase() === nameNorm
+  );
+}
+
 export const DEFAULT_CONFIG: ClubConfig = {
   defaultPricePerShuttlecock: 28000,
   adminPin: '1234',
   finePerLateDay: 10000,
   paymentCutoffTime: '21:00',
   guestFee: 40000,
+  monthlyElectricityFee: 20000,
+  electricityPayments: {},
 };
+
+export function hasPaidElectricity(
+  config: ClubConfig,
+  memberId: string,
+  monthStr: string
+): boolean {
+  if (!config.electricityPayments) return false;
+  return Boolean(config.electricityPayments[monthStr]?.[memberId]);
+}
 
 const STORAGE_KEYS = {
   SESSIONS: 'badminton_club_sessions_v1',
@@ -327,6 +362,7 @@ export function calculateSessionPerPersonFee(
 
 /**
  * Calculate total debts & late fines for all 18 members across all historical sessions
+ * + includes unpaid monthly electricity fees for the 13 fixed members
  */
 export function calculateMemberDebts(
   allSessions: Record<string, DailySession>,
@@ -336,6 +372,8 @@ export function calculateMemberDebts(
 ): MemberDebtSummary[] {
   const summaries: Record<string, MemberDebtSummary> = {};
   const now = new Date();
+  const currentMonthStr = currentTodayStr.substring(0, 7);
+  const electricityFee = config.monthlyElectricityFee || 20000;
 
   members.forEach((m) => {
     summaries[m.id] = {
@@ -368,6 +406,13 @@ export function calculateMemberDebts(
         }
       }
     });
+  });
+
+  // Calculate electricity debts for fixed members
+  members.forEach((m) => {
+    if (isElectricityMember(m) && !hasPaidElectricity(config, m.id, currentMonthStr)) {
+      summaries[m.id].totalUnpaidBaseAmount += electricityFee;
+    }
   });
 
   Object.values(summaries).forEach((s) => {

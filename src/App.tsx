@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { CalendarModal } from './components/CalendarModal';
 import { DebtReportModal } from './components/DebtReportModal';
+import { ElectricityModal } from './components/ElectricityModal';
 import { Header } from './components/Header';
 import { PinModal } from './components/PinModal';
 import { PlayerGrid } from './components/PlayerGrid';
@@ -17,7 +18,9 @@ import { getDefaultDisplayDate, getTodayString } from './utils/dateUtils';
 import {
   calculateSessionPerPersonFee,
   getEffectiveStatus,
+  hasPaidElectricity,
   INITIAL_MEMBERS,
+  isElectricityMember,
   loadAllSessions,
   loadClubConfig,
   saveAllSessionsLocally,
@@ -39,6 +42,7 @@ export default function App() {
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
   const [showDebtReportModal, setShowDebtReportModal] = useState<boolean>(false);
   const [showCalendarModal, setShowCalendarModal] = useState<boolean>(false);
+  const [showElectricityModal, setShowElectricityModal] = useState<boolean>(false);
 
   // Real-time Firestore synchronization
   useEffect(() => {
@@ -237,6 +241,24 @@ export default function App() {
     setRole('member');
   };
 
+  // Handler: Toggle electricity payment for a fixed member
+  const handleToggleElectricityPayment = (memberId: string, monthStr: string, isPaid: boolean) => {
+    const currentPayments = config.electricityPayments || {};
+    const monthPayments = { ...(currentPayments[monthStr] || {}) };
+    monthPayments[memberId] = isPaid;
+
+    const newConfig: ClubConfig = {
+      ...config,
+      electricityPayments: {
+        ...currentPayments,
+        [monthStr]: monthPayments,
+      },
+    };
+
+    setConfig(newConfig);
+    saveClubConfig(newConfig);
+  };
+
   // Calculate statistics for current session
   const perPersonFee = calculateSessionPerPersonFee(currentSession, config);
   const now = new Date();
@@ -256,6 +278,17 @@ export default function App() {
   });
 
   const participantsCount = paidCount + unpaidCount + lateCount;
+
+  // Electricity statistics for current month
+  const currentMonthStr = currentDateStr.substring(0, 7);
+  const electricityMembers = INITIAL_MEMBERS.filter((m) => isElectricityMember(m));
+  let electricityPaidCount = 0;
+  electricityMembers.forEach((m) => {
+    if (hasPaidElectricity(config, m.id, currentMonthStr)) {
+      electricityPaidCount += 1;
+    }
+  });
+  const electricityTotalCount = electricityMembers.length;
 
   return (
     <div className="w-full min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col justify-start gap-2 p-2 select-none font-sans max-w-md mx-auto shadow-2xl border-x border-slate-900 overflow-y-auto">
@@ -284,7 +317,7 @@ export default function App() {
         defaultGuestFee={config.guestFee || 40000}
       />
 
-      {/* 3. Color Key Legend Bar + Guest Player Controls/Summary */}
+      {/* 3. Color Key Legend Bar + Electricity Button + Guest Player Controls/Summary */}
       <StatusLegend
         paidCount={paidCount}
         unpaidCount={unpaidCount}
@@ -292,8 +325,11 @@ export default function App() {
         noneCount={noneCount}
         guestCount={currentSession.guestCount || 0}
         guestFee={currentSession.guestFee ?? config.guestFee ?? 40000}
+        electricityPaidCount={electricityPaidCount}
+        electricityTotalCount={electricityTotalCount}
         role={role}
         onUpdateGuestCount={handleUpdateGuestCount}
+        onOpenElectricityModal={() => setShowElectricityModal(true)}
       />
 
       {/* 4. 18 Member Compact Button Matrix (Fits 1 Mobile Screen!) */}
@@ -303,6 +339,7 @@ export default function App() {
         sessionDateStr={currentDateStr}
         perPersonFee={perPersonFee}
         role={role}
+        config={config}
         cutoffTime={config.paymentCutoffTime}
         finePerLateDay={config.finePerLateDay}
         onStatusChange={handleStatusChange}
@@ -345,6 +382,17 @@ export default function App() {
           role={role}
           onClose={() => setShowDebtReportModal(false)}
           onSettleMemberDebt={handleSettleMemberDebt}
+        />
+      )}
+
+      {showElectricityModal && (
+        <ElectricityModal
+          currentDateStr={currentDateStr}
+          members={INITIAL_MEMBERS}
+          config={config}
+          role={role}
+          onClose={() => setShowElectricityModal(false)}
+          onTogglePayment={handleToggleElectricityPayment}
         />
       )}
     </div>
