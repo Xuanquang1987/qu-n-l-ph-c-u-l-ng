@@ -106,7 +106,7 @@ export const ShuttleCalculator: React.FC<ShuttleCalculatorProps> = ({
         <div className="col-span-6 bg-gradient-to-br from-emerald-950/90 via-slate-950 to-slate-950 border border-emerald-500/50 p-2 rounded-xl flex flex-col justify-between shadow-inner">
           <div className="flex items-center justify-between text-xs font-semibold text-emerald-300">
             <span>Mỗi người đóng:</span>
-            <span className="text-[11px] font-bold text-emerald-400/80">({participantsCount} TV)</span>
+            <span className="text-[11px] font-bold text-emerald-400/80">({participantsCount} người)</span>
           </div>
 
           <div className="mt-1">
@@ -116,7 +116,7 @@ export const ShuttleCalculator: React.FC<ShuttleCalculatorProps> = ({
             <div className="text-[10px] sm:text-[11px] text-slate-400 mt-1 truncate">
               {guestRevenue > 0 ? (
                 <span title={`(Tổng ${formatVND(totalCost)} - Khách ${formatVND(guestRevenue)}) / ${participantsCount}`}>
-                  ({formatVND(totalCost)} - {formatVND(guestRevenue)}) / {participantsCount} TV
+                  ({formatVND(totalCost)} - {formatVND(guestRevenue)}) / {participantsCount} người
                 </span>
               ) : (
                 <>
